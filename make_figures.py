@@ -1,8 +1,4 @@
-"""
-Standalone figure generator — run from qml_project/:
-    python make_figures.py
-Produces figures/fig1..fig7.png from results/ JSON files.
-"""
+
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -20,14 +16,13 @@ RUN_IDS    = ["iris_q4_l2", "wine_q4_l2"]
 DS_LABELS  = ["Iris", "Wine"]
 os.makedirs("figures", exist_ok=True)
 
-# ── helpers ─────────────────────────────────────────────────────────────
+
 def load(run_id, name):
     with open(f"results/{run_id}/{name}.json") as f:
         return json.load(f)
 
 def merge(run_id, prefix):
-    """Merge chunked JSON files whose names start with exactly `prefix`
-    followed by '_seeds_'. This avoids matching qnn_params when prefix=qnn."""
+  
     out = {"product": [], "entangled": []}
     for fname in sorted(os.listdir(f"results/{run_id}")):
         if fname.startswith(prefix + "_seeds_"):
@@ -42,7 +37,7 @@ def mn(lst, key):
 def sd(lst, key):
     return float(np.std([r[key] for r in lst]))
 
-# ── Fig 1: Manipulation check ────────────────────────────────────────────
+
 def fig1():
     bar_map = {"feature_map_product": "FM-Product",
                "feature_map_entangled": "FM-Entangled",
@@ -72,7 +67,7 @@ def fig1():
     plt.close()
     print("fig1 saved")
 
-# ── Fig 2: Performance bar chart ─────────────────────────────────────────
+
 def fig2():
     model_names = ["QK-SVM\nProduct", "QK-SVM\nEntangled",
                    "QNN\nProduct",    "QNN\nEntangled",
@@ -130,7 +125,7 @@ def fig2():
     plt.close()
     print("fig2 saved")
 
-# ── Fig 3: Self-similarity heatmaps ─────────────────────────────────────
+
 def fig3():
     N = 5  # n_seeds
     fig, axes = plt.subplots(2, 2, figsize=(11, 9))
@@ -170,7 +165,6 @@ def fig3():
     plt.close()
     print("fig3 saved")
 
-# ── Fig 4: Cross-condition CKA by layer ──────────────────────────────────
 def fig4():
     metrics_cfg = [
         ("linear_cka",    "Linear CKA",  "#2563EB"),
@@ -209,7 +203,7 @@ def fig4():
     plt.close()
     print("fig4 saved")
 
-# ── Fig 5: Trained vs random CKA ─────────────────────────────────────────
+
 def fig5():
     fig, axes = plt.subplots(1, 2, figsize=(13, 5), sharey=True)
     for ax, run_id, ds in zip(axes, RUN_IDS, DS_LABELS):
@@ -244,7 +238,7 @@ def fig5():
     plt.close()
     print("fig5 saved")
 
-# ── Fig 6: QNN loss curves ───────────────────────────────────────────────
+
 def fig6():
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
     for ax, run_id, ds in zip(axes, RUN_IDS, DS_LABELS):
@@ -268,7 +262,7 @@ def fig6():
     plt.close()
     print("fig6 saved")
 
-# ── Fig 7: Results table ─────────────────────────────────────────────────
+
 def fig7():
     rows = []
     for run_id, ds in zip(RUN_IDS, DS_LABELS):
