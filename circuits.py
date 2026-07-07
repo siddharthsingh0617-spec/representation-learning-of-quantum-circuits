@@ -1,57 +1,21 @@
-"""
-Quantum circuit definitions: feature maps (data encodings) and
-variational ansätze, each provided in matched ENTANGLED /
-NON-ENTANGLED pairs so that the only difference between conditions
-is the presence of entangling two-qubit gates. Everything else
-(number of layers, number of single-qubit rotations, parameter count
-where applicable) is held fixed -- this is essential for a clean
-ablation: we want entanglement, not circuit capacity, to be the
-manipulated variable.
 
-Two circuit families are provided:
-
-1. Feature maps (data re-uploading style, used for quantum kernels):
-   - ZFeatureMap-style:        single-qubit RZ/RY encoding only (NO entanglement)
-   - ZZFeatureMap-style:       adds ZZ-entangling layers between encodings
-     (this is the standard Havlicek et al. 2019 construction)
-
-2. Variational ansätze (used for the trainable QNN classifier):
-   - HEA-product:  hardware-efficient ansatz, rotation layers only, no CNOTs
-   - HEA-entangled: identical rotation layers + a ring of CNOTs per layer
-
-Each circuit also exposes a `layer_representations` mode used by the
-representation-similarity (CKA) analysis: instead of returning only
-the final measurement, it returns the vector of single-qubit Pauli
-expectation values <X_i>, <Y_i>, <Z_i> evaluated after EVERY layer,
-which we treat as the network's per-layer "representation" of an input,
-directly analogous to "layer activations" in the classical CKA paper.
-"""
 
 import pennylane as qml
 import numpy as np
 
 
 def default_device(n_qubits):
-    """Use the fast C++ state-vector simulator when available, falling
-    back to default.qubit otherwise. lightning.qubit gives ~30-50%
-    speedups for the circuit depths used in this project and produces
-    numerically identical results (both are exact statevector
-    simulators)."""
+    
     try:
         return qml.device("lightning.qubit", wires=n_qubits)
     except qml.DeviceError:
         return qml.device("default.qubit", wires=n_qubits)
 
 
-# ---------------------------------------------------------------------
-# Feature maps (for quantum kernel methods)
-# ---------------------------------------------------------------------
+
 
 def feature_map_product(x, wires, n_layers=2):
-    """Non-entangled feature map: per-qubit RZ-RY-RZ data encoding,
-    repeated n_layers times with no two-qubit gates at all. Each qubit
-    evolves completely independently -> the resulting state is always
-    a product state."""
+
     n = len(wires)
     for layer in range(n_layers):
         for i, w in enumerate(wires):
@@ -62,11 +26,7 @@ def feature_map_product(x, wires, n_layers=2):
 
 
 def feature_map_entangled(x, wires, n_layers=2):
-    """Entangled feature map (ZZ-style, Havlicek et al. 2019): identical
-    single-qubit encoding layer as `feature_map_product`, PLUS a ring
-    of ZZ-entangling (CNOT-RZ-CNOT) gates between adjacent qubits after
-    each layer. Single-qubit gate count is identical to the product
-    version; entanglement is the only structural addition."""
+  
     n = len(wires)
     for layer in range(n_layers):
         for i, w in enumerate(wires):
@@ -74,8 +34,7 @@ def feature_map_entangled(x, wires, n_layers=2):
             qml.RZ(xi, wires=w)
             qml.RY(xi, wires=w)
             qml.RZ((layer + 1) * xi, wires=w)
-        # entangling ring: encodes pairwise feature products, standard
-        # ZZFeatureMap construction
+    
         for i in range(n):
             j = (i + 1) % n
             xi, xj = x[i % len(x)], x[j % len(x)]
@@ -84,15 +43,9 @@ def feature_map_entangled(x, wires, n_layers=2):
             qml.CNOT(wires=[wires[i], wires[j]])
 
 
-# ---------------------------------------------------------------------
-# Variational ansätze (for the trainable QNN classifier)
-# ---------------------------------------------------------------------
 
 def ansatz_product(params, wires):
-    """Hardware-efficient ansatz, NO entangling gates: each qubit gets
-    its own independent Rot(theta1, theta2, theta3) per layer. Acts as
-    a strict ablation baseline -- a QNN that can only ever represent
-    product states, regardless of training."""
+
     n_layers, n = params.shape[0], len(wires)
     for layer in range(n_layers):
         for i, w in enumerate(wires):
@@ -100,9 +53,7 @@ def ansatz_product(params, wires):
 
 
 def ansatz_entangled(params, wires):
-    """Hardware-efficient ansatz WITH entanglement: identical per-qubit
-    Rot layers as `ansatz_product`, plus a ring of CNOTs after each
-    rotation layer (standard HEA, e.g. Kandala et al. 2017)."""
+   
     n_layers, n = params.shape[0], len(wires)
     for layer in range(n_layers):
         for i, w in enumerate(wires):
@@ -116,13 +67,10 @@ def init_ansatz_params(n_layers, n_qubits, seed=0):
     return rng.uniform(0, 2 * np.pi, size=(n_layers, n_qubits, 3))
 
 
-# ---------------------------------------------------------------------
-# QNode factories
-# ---------------------------------------------------------------------
+
 
 def make_kernel_circuit(n_qubits, n_layers, entangled, device=None):
-    """Returns a QNode computing the fidelity |<phi(x1)|phi(x2)>|^2
-    between two feature-mapped states -- the quantum kernel value."""
+ 
     wires = list(range(n_qubits))
     dev = device or default_device(n_qubits)
     fmap = feature_map_entangled if entangled else feature_map_product
@@ -137,10 +85,7 @@ def make_kernel_circuit(n_qubits, n_layers, entangled, device=None):
 
 
 def make_qnn_circuit(n_qubits, n_layers, entangled, device=None):
-    """Returns a QNode for the variational classifier: data encoding
-    (always uses simple angle embedding, identical in both conditions)
-    followed by a trainable ansatz (product or entangled), measuring
-    <Z_0> as the classifier's decision value."""
+  
     wires = list(range(n_qubits))
     dev = device or default_device(n_qubits)
     ansatz = ansatz_entangled if entangled else ansatz_product
@@ -159,16 +104,7 @@ def make_qnn_circuit(n_qubits, n_layers, entangled, device=None):
 
 def make_layerwise_representation_circuit(n_qubits, n_layers, entangled,
                                            device=None):
-    """Returns a QNode that exposes the per-layer 'representation' of
-    an input: after data encoding and after each ansatz layer, we
-    measure <X_i>, <Y_i>, <Z_i> on every qubit. Concatenating these
-    across qubits gives a 3*n_qubits-dim vector per layer -- the
-    quantum analogue of a hidden-layer activation vector, used as
-    input to the CKA-style similarity analysis.
-
-    Returns a function repr_fn(x, params) -> np.ndarray of shape
-    (n_layers + 1, 3 * n_qubits)   [layer 0 = after encoding only]
-    """
+   
     wires = list(range(n_qubits))
     dev = device or default_device(n_qubits)
     ansatz_layer_fn = ansatz_entangled if entangled else ansatz_product
