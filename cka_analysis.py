@@ -1,28 +1,4 @@
-"""
-Core analysis pipeline: extract layer-wise quantum representations
-(Pauli expectation vectors) for a batch of inputs under trained
-product/entangled QNN parameters, then compute CKA-style similarity
-between them -- directly answering the project's central question:
-"how does entanglement change what a quantum model represents?"
-
-Three comparisons are performed, mirroring the structure of the
-original CKA paper's experiments:
-
-  1. SANITY CHECK (Sec 6.1 analogue): representations of the SAME
-     condition (e.g. entangled) across different random-seed trained
-     models should be highly similar layer-to-layer if the model is
-     learning consistent structure.
-
-  2. CROSS-CONDITION COMPARISON (this project's novel contribution):
-     representations of entangled vs. non-entangled models, layer
-     by layer -- do entangled circuits encode qualitatively different
-     information than product circuits, or just a rotated/rescaled
-     version of the same information?
-
-  3. RANDOM VS TRAINED (Sec 6.3 analogue): representations of
-     untrained (random params) vs trained models, to check that
-     training changes the representation in a structured way.
-"""
+"
 
 import numpy as np
 import pennylane as qml
@@ -33,14 +9,7 @@ from .similarity import all_similarity_metrics
 
 def extract_layerwise_representations(X, params, n_qubits, n_layers,
                                        entangled):
-    """For a batch of inputs X (n_samples x n_qubits) and fixed
-    ansatz parameters, return an array of shape
-    (n_layers+1, n_samples, 3*n_qubits) giving the per-layer Pauli
-    expectation-value representation of every sample.
 
-    layer index 0 = representation right after data encoding (before
-    any ansatz layer); layer index k = after k ansatz layers.
-    """
     wires = list(range(n_qubits))
     dev = default_device(n_qubits)
     ansatz_layer_fn = ansatz_entangled if entangled else ansatz_product
@@ -49,8 +18,7 @@ def extract_layerwise_representations(X, params, n_qubits, n_layers,
     for w in wires:
         obs += [qml.PauliX(w), qml.PauliY(w), qml.PauliZ(w)]
 
-    # Build one QNode per depth (0..n_layers) -- still cheap since
-    # state-vector sim cost dominates, not QNode construction.
+  
     qnodes = []
     for upto in range(n_layers + 1):
         @qml.qnode(dev)
@@ -71,13 +39,7 @@ def extract_layerwise_representations(X, params, n_qubits, n_layers,
 
 def layerwise_self_similarity(X, n_qubits, n_layers, entangled,
                                n_seeds=5, base_seed=100):
-    """SANITY CHECK: train-free version -- compare representations of
-    the SAME architecture (entangled or product) across different
-    random parameter initializations, layer by layer. Quantifies how
-    consistent the representational geometry is across random draws
-    of the circuit, analogous to Section 6.1 of the CKA paper but
-    applied to untrained (random-parameter) circuits, which is a
-    well-defined and reproducible baseline for QML circuits."""
+   
     all_reps = []
     for s in range(n_seeds):
         params = init_ansatz_params(n_layers, n_qubits,
@@ -101,7 +63,7 @@ def layerwise_self_similarity(X, n_qubits, n_layers, entangled,
                     cka_matrix[li, i, j] = val
                     cka_matrix[li, j, i] = val
 
-    # summarize: mean off-diagonal CKA per layer
+  
     mean_self_cka = []
     for li in range(n_layers_total):
         mat = cka_matrix[li]
@@ -116,11 +78,7 @@ def layerwise_self_similarity(X, n_qubits, n_layers, entangled,
 
 def cross_condition_similarity(X, n_qubits, n_layers, n_seeds=5,
                                 base_seed=100):
-    """CORE COMPARISON: for each layer depth, compute CKA (and other
-    indices) between product-circuit and entangled-circuit
-    representations of the SAME inputs, averaged across n_seeds
-    independent random parameter draws (paired by seed so both
-    conditions see the 'same' random initialization scale)."""
+    
     records = []
     for s in range(n_seeds):
         params = init_ansatz_params(n_layers, n_qubits,
@@ -143,11 +101,7 @@ def cross_condition_similarity(X, n_qubits, n_layers, n_seeds=5,
 def trained_vs_random_similarity(X, trained_params, n_qubits, n_layers,
                                   entangled, n_random_seeds=5,
                                   base_seed=200):
-    """Compare a TRAINED model's layerwise representations against
-    untrained (random-parameter) models of the same architecture,
-    quantifying how much training reorganizes the representation --
-    analogous to Section 6.3 (trained vs. untrained networks) in the
-    original CKA paper."""
+   
     reps_trained = extract_layerwise_representations(
         X, trained_params, n_qubits, n_layers, entangled)
 
