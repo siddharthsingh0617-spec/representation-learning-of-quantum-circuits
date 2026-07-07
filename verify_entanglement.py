@@ -1,10 +1,4 @@
-"""
-Verification utilities: confirm that the 'entangled' and 'non-entangled'
-circuit conditions actually differ in entanglement (not just in name),
-using von Neumann entanglement entropy of single-qubit reduced density
-matrices. This is run once and reported in the paper as a manipulation
-check -- analogous to a sanity check before trusting downstream results.
-"""
+
 
 import numpy as np
 import pennylane as qml
@@ -15,10 +9,7 @@ from .circuits import (feature_map_product, feature_map_entangled,
 
 def average_entanglement_entropy(circuit_fn, n_qubits, n_layers,
                                   n_samples=30, seed=0, is_ansatz=False):
-    """Average single-qubit von Neumann entanglement entropy across
-    `n_samples` random inputs (and, for ansätze, random parameters).
-    Averaged over all qubits to summarize total entanglement generated
-    by the circuit."""
+    
     rng = np.random.default_rng(seed)
     wires = list(range(n_qubits))
     dev = qml.device("default.qubit", wires=n_qubits)
@@ -48,9 +39,7 @@ def average_entanglement_entropy(circuit_fn, n_qubits, n_layers,
 
 
 def run_manipulation_check(n_qubits=4, n_layers=2, n_samples=30, seed=0):
-    """Reports entanglement entropy for all four circuit variants
-    (feature map x {product, entangled}; ansatz x {product, entangled}).
-    Product variants should be ~0; entangled variants should be > 0."""
+
     results = {}
 
     for name, fn in [("feature_map_product", feature_map_product),
