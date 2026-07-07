@@ -1,9 +1,4 @@
-"""
-Classical baselines (RBF-kernel SVM, MLP) trained on the same
-preprocessed (PCA-reduced, scaled) features as the quantum models,
-to contextualize quantum model performance against standard classical
-methods of comparable complexity.
-"""
+
 
 import time
 from sklearn.svm import SVC
