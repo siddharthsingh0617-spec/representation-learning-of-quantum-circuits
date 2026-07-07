@@ -1,15 +1,4 @@
-"""
-Phase-based experiment runner: splits the full experiment into
-independently-runnable, checkpointed phases so each phase can complete
-within a bounded wall-clock budget and resume from saved state. Each
-phase reads any prior phases' outputs from results/<run_id>/ and
-writes its own output there.
 
-Usage:
-    python -m src.run_phases <run_id> <phase> [--dataset iris] [...]
-
-Phases: manip, kernel_svm, qnn, classical, cka_self, cka_cross, cka_trained_random, summarize
-"""
 
 import argparse
 import json
