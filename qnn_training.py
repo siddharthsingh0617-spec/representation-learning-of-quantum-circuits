@@ -1,10 +1,4 @@
-"""
-Variational QNN classifier training: binary classification via
-gradient descent on a square-loss objective using the product /
-entangled ansätze defined in circuits.py. Uses PennyLane's Adam
-optimizer with parameter-shift-free adjoint differentiation
-(exact gradients, fast on state-vector simulators).
-"""
+
 
 import numpy as np
 import pennylane as qml
@@ -16,12 +10,7 @@ from .circuits import make_qnn_circuit, init_ansatz_params
 def train_qnn(X_train, y_train, X_test, y_test, n_qubits, n_layers,
               entangled, n_epochs=60, lr=0.1, batch_size=20,
               seed=0, verbose=True, track_loss_curve=True):
-    """Train a variational QNN binary classifier via Adam on MSE loss
-    between <Z_0> in [-1, 1] and the {-1, +1}-mapped label.
 
-    Returns dict with trained params, test accuracy/AUC, loss curve,
-    and timing -- everything needed for the results table and figures.
-    """
     label = "entangled" if entangled else "product (non-entangled)"
     circuit = make_qnn_circuit(n_qubits, n_layers, entangled)
     y_train_pm = 2 * y_train - 1  # map {0,1} -> {-1,+1}
@@ -64,7 +53,7 @@ def train_qnn(X_train, y_train, X_test, y_test, n_qubits, n_layers,
 
     elapsed = time.time() - t0
 
-    # evaluate
+    
     def predict_scores(X):
         return np.array([circuit(x, params) for x in X])
 
